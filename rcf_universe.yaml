@@ -1,0 +1,72 @@
+# rcf_universe.yaml — machine-readable screened universe for RCF
+# Generated as a STATIC subset of the Trades watchlist (do NOT filter the master at
+# runtime — that silently inherits Tier-1C exceptions into a leveraged book).
+# The tradingbot universe loader must REJECT any name failing the eligibility gates.
+# Per-name data fields default to null and MUST be populated with real data per-trade.
+# Version: 2026-06-11.
+
+eligibility_gates:          # ALL must pass for a name to be RCF-tradeable
+  tier_in: [1A, 1B]         # Tier 1C HARD EXCLUDED, no override
+  min_market_cap_usd_b: 20
+  min_equity_adv_shares_m: 3
+  min_options_oi_atm: 1000
+  min_options_adv_contracts: 2000
+  max_options_spread_pct: 5.0
+  require_catalyst_date: true
+  max_days_to_catalyst: 52        # catalyst must resolve on/before T+52
+  require_listed_options: true
+
+per_name_schema:            # fields each entry must carry (null = needs real data)
+  ticker: null
+  tier: null                # 1A | 1B  (never 1C)
+  theme: null
+  thesis: null
+  market_cap_usd_b: null
+  equity_adv_shares_m: null
+  catalyst_type: null       # earnings | product | regulatory | macro  (affects IV crush)
+  catalyst_date: null       # ABSOLUTE date — not relative
+  days_to_catalyst: null    # derived at build; gates <= 52
+  options_oi_atm: null
+  options_adv_contracts: null
+  options_iv_rank: null     # 0-100; high = vol-crush risk through catalyst
+  options_spread_pct: null
+  avg_gap_move_pct: null     # historical event-day gap; sizes spread width
+  liquidity_score: null      # 1-3; throttles size
+
+# Candidate pool carried from the watchlist by tier/liquidity ONLY.
+# NONE is eligible until catalyst_date + options fields are populated and pass the gates.
+candidates:
+  tier_1A:
+    - {ticker: NVDA, tier: 1A, theme: semi_ai}
+    - {ticker: AMD,  tier: 1A, theme: semi_ai}
+    - {ticker: GOOGL, tier: 1A, theme: ai_software}
+    - {ticker: META, tier: 1A, theme: ai_software}
+    - {ticker: TSLA, tier: 1A, theme: ai_software}
+    # AAPL, MSFT, AMZN, SPY, QQQ auto-pass per watchlist rule
+  tier_1B_provisional:      # must clear $20B / 3M ADV / options + dated <=T+52 catalyst
+    - {ticker: TSM,  theme: semi_ai}
+    - {ticker: MU,   theme: semi_ai}
+    - {ticker: MRVL, theme: semi_ai}
+    - {ticker: ARM,  theme: semi_ai}
+    - {ticker: QCOM, theme: semi_ai}
+    - {ticker: ORCL, theme: ai_software}
+    - {ticker: NOW,  theme: ai_software}
+    - {ticker: APP,  theme: ai_software}
+    - {ticker: SHOP, theme: ai_software}
+    - {ticker: IBM,  theme: ai_software}
+    - {ticker: PLTR, theme: defense}
+    - {ticker: LMT,  theme: defense}
+    - {ticker: COIN, theme: crypto}
+    - {ticker: HOOD, theme: fintech}
+    - {ticker: NU,   theme: fintech}
+    - {ticker: RKT,  theme: fintech}
+    - {ticker: FSLR, theme: energy}
+    - {ticker: DELL, theme: hardware}
+    - {ticker: HPE,  theme: hardware}
+    - {ticker: RKLB, theme: space}
+    - {ticker: ASTS, theme: space}
+    - {ticker: SATS, theme: space}
+
+excluded:
+  tier_1C: ALL              # user's historical failure mode — never on borrowed capital
+  reason: "Concentration + leverage cannot absorb sub-$5B narrative names or their slippage; council 2026-06-11 unanimous on exclusion."
