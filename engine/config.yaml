@@ -1,0 +1,7 @@
+provider: anthropic
+deep_think_llm: claude-sonnet-4-6      # Trader + Researchers (confirm exact id at build)
+quick_think_llm: claude-haiku-4-5-20251001  # 4 Analysts
+max_debate_rounds: 1
+online_tools: true
+max_finalists_per_run: 3
+# API keys are read from env: ANTHROPIC_API_KEY, ALPHAVANTAGE_API_KEY

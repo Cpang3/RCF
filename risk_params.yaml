@@ -37,10 +37,10 @@ timeline_days:
 capital_allocation:
   max_loan_drawn_pct: 100        # may draw less; partial drawdown reduces cliff exposure
   recommended_deployed_pct: 40   # council: do NOT default to full notional
-  max_deployed_pct: 100          # full notional ONLY if expressed as defined-risk options
+  max_deployed_pct: 100          # full notional discouraged for spot; default to recommended_deployed_pct
   tranches: 3
   tranche_schedule_days: [0, 4, 9]
-  max_single_name_pct: 40        # of deployed capital — no all-in concentration
+  max_single_name_pct: 100       # RCF is deliberately concentrated into ONE name (spot)
 
 risk_controls:
   noise_band_pct: 2.0            # < this adverse move = no action
@@ -49,11 +49,11 @@ risk_controls:
   hard_stop_total_loss_hkd: 77550
   no_averaging_down: true
   reward_to_risk_min: 2.0
-  # The -10% price stop is NOT enforceable as a native order in the toolset.
-  defined_risk_required: true
-  preferred_instrument: long_options_or_debit_spreads   # premium = absolute max loss
-  shares_with_mental_stop: DISALLOWED_FOR_LEVERAGED_CAPITAL
-  max_iv_premium_pct_of_deployed: 15   # flag if option premium through a catalyst exceeds this
+  # SPOT-ONLY (overrides prior defined-risk gate; see spec 2026-06-11 §7).
+  # No native stop order exists; gap-through-stop risk ACCEPTED, mitigated by sizing.
+  defined_risk_required: false
+  instrument: spot
+  downside_via: [position_sizing, manual_stop_alert, date_exit_T52]
 
 universe:
   theme: ai-infrastructure
@@ -78,7 +78,7 @@ execution:
 # GO / NO-GO gates — ALL must be true before status -> ARMED (drawing the loan)
 gates:
   G1_loan_terms_verified: true          # KFS confirmed: 1% fee, 0% 60d, no penalty if repaid in 60d
-  G2_defined_risk_structure_chosen: false
+  G2_spot_sizing_set: false
   G3_catalyst_inside_T52_confirmed: false   # CRITICAL: MRVL ~late Aug, MU ~late Sept may fall OUTSIDE
   G4_position_sized_below_cliff: false      # max defined loss survivable + repayment intact
   G5_not_chasing_post_catalyst_spike: false # e.g. MRVL already +32% on Jensen Huang 2026-06-02
