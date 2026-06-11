@@ -1,0 +1,27 @@
+# Secrets / credentials — never commit
+.env
+.env.*
+*.key
+*.pem
+credentials*
+*secret*
+*token*
+config.local.*
+
+# Broker / account artifacts
+*account*.json
+*.futu_trade_audit*
+positions*.csv
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Python (if strategy code added later)
+__pycache__/
+*.pyc
+.venv/
+venv/

@@ -1,0 +1,87 @@
+# risk_params.yaml — codified risk parameters for the loan-funded convexity strategy
+# Consumed by `tradingbot` (the mechanism). The bot should ENFORCE these:
+# reject / warn on any order that violates a gate or limit. The council's key
+# finding was that the failure mode is ENFORCEMENT, not design — so these are
+# hard checks, not suggestions.
+# Currency: HKD unless noted. Version: 2026-06-11.
+
+strategy:
+  name: loan-convexity-ai-infra
+  status: DESIGN            # DESIGN | ARMED | LIVE | CLOSED  — must be ARMED only when all gates pass
+  horizon_days: 60
+
+loan:
+  provider: OCBC
+  product: "60-Day Interest-Free Personal Loan"
+  principal_max_hkd: 705000
+  handling_fee_pct: 1.0
+  handling_fee_hkd: 7050
+  interest_free_days: 60
+  early_settlement_penalty_within_60d: 0
+  # CLIFF — if not repaid within 60 days:
+  post_60d_early_repay_fee_pct: 3.0
+  overdue_default_interest_pa_pct: 48.0
+  late_fee_per_instalment_hkd: 200
+  breakeven_return_pct: 1.0
+
+# The usable trade window is SHORTER than 60 days: FX both ways + T+1 settlement.
+timeline_days:
+  drawdown: 0              # T0 — draw ONLY when setup + gates ready
+  deploy_by: 10            # tranche in 1-3 buys by T+10
+  hold_until: 45
+  derisk_window_start: 45
+  hard_close_by: 52        # REAL close date (sell + reconvert USD->HKD before settlement)
+  repay_by: 60             # principal must land in OCBC account by T+60
+  checkpoints: [45, 52, 58, 60]
+
+capital_allocation:
+  max_loan_drawn_pct: 100        # may draw less; partial drawdown reduces cliff exposure
+  recommended_deployed_pct: 40   # council: do NOT default to full notional
+  max_deployed_pct: 100          # full notional ONLY if expressed as defined-risk options
+  tranches: 3
+  tranche_schedule_days: [0, 4, 9]
+  max_single_name_pct: 40        # of deployed capital — no all-in concentration
+
+risk_controls:
+  noise_band_pct: 2.0            # < this adverse move = no action
+  soft_review_drawdown_pct: 5.0  # reassess thesis/news/liquidity
+  hard_stop_drawdown_pct: 10.0   # flatten; ~HKD 77,550 loss incl. fee
+  hard_stop_total_loss_hkd: 77550
+  no_averaging_down: true
+  reward_to_risk_min: 2.0
+  # The -10% price stop is NOT enforceable as a native order in the toolset.
+  defined_risk_required: true
+  preferred_instrument: long_options_or_debit_spreads   # premium = absolute max loss
+  shares_with_mental_stop: DISALLOWED_FOR_LEVERAGED_CAPITAL
+  max_iv_premium_pct_of_deployed: 15   # flag if option premium through a catalyst exceeds this
+
+universe:
+  theme: ai-infrastructure
+  names: [MU, MRVL]            # extend with NVDA, AVGO, AMD, TSM (one-line thesis each)
+  liquidity_min: deep         # HKD ~700k must enter/exit cleanly
+  require_catalyst_inside_window: true   # catalyst MUST land on/before T+52
+
+buffers:
+  min_non_trading_cash_hkd: 30000
+  salary_ringfenced: true     # salary funds living costs ONLY, never tops up the trade
+  salary_not_used_to_repay_a_losing_trade: true  # do not disguise trading loss as savings drawdown
+  fixed_obligations_monthly_hkd: 10000
+
+execution:
+  venue: Futu
+  platform: Mac               # Windows python.exe blocked by corp policy
+  fx_conversion: manual_in_app # HKD<->USD not available via API
+  fx_risk: minimal            # USD/HKD peg
+  preview_before_confirm: true
+  test_small_live_order_before_drawdown: true
+
+# GO / NO-GO gates — ALL must be true before status -> ARMED (drawing the loan)
+gates:
+  G1_loan_terms_verified: true          # KFS confirmed: 1% fee, 0% 60d, no penalty if repaid in 60d
+  G2_defined_risk_structure_chosen: false
+  G3_catalyst_inside_T52_confirmed: false   # CRITICAL: MRVL ~late Aug, MU ~late Sept may fall OUTSIDE
+  G4_position_sized_below_cliff: false      # max defined loss survivable + repayment intact
+  G5_not_chasing_post_catalyst_spike: false # e.g. MRVL already +32% on Jensen Huang 2026-06-02
+  G6_execution_proven: false                # Mac migration + FX dry-run (both ways) tested live small
+  G7_named_written_edge: false
+  G8_psychologically_ok_with_max_loss: false
